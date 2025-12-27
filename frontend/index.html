@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Photo Gallery</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #gallery div { margin-bottom: 20px; }
+        img { display: block; margin-top: 10px; }
+        input, button { margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Photo Gallery</h1>
+
+    <input type="text" id="searchBox" placeholder="Search photos">
+    <button onclick="search()">Search</button>
+
+    <div id="gallery"></div>
+
+    <script>
+    async function loadPhotos(url = "http://127.0.0.1:5000/list_photos") {
+        const res = await fetch(url);
+        const photos = await res.json();
+        const gallery = document.getElementById("gallery");
+        gallery.innerHTML = "";
+
+        photos.forEach(p => {
+            const div = document.createElement("div");
+            div.innerHTML = `
+                <h3>${p.title}</h3>
+                <p>${p.caption}</p>
+                <img src="http://127.0.0.1:5000${p.url}" width="300">
+                <p>Likes: <span id="likes-${p.id}">${p.likes || 0}</span></p>
+                <button onclick="likePhoto('${p.id}')">Like ❤️</button>
+                <h4>Comments:</h4>
+                <div id="comments-${p.id}"></div>
+                <input type="text" id="commentInput-${p.id}" placeholder="Add a comment">
+                <button onclick="addComment('${p.id}')">Post</button>
+                <hr>
+            `;
+            gallery.appendChild(div);
+            loadComments(p.id);
+        });
+    }
+
+    function search() {
+        const q = document.getElementById("searchBox").value;
+        loadPhotos(`http://127.0.0.1:5000/search?q=${encodeURIComponent(q)}`);
+    }
+
+    async function loadComments(photo_id) {
+        const res = await fetch(`http://127.0.0.1:5000/get_comments/${photo_id}`, {cache: "no-store"});
+        const comments = await res.json();
+        const commentsDiv = document.getElementById(`comments-${photo_id}`);
+        commentsDiv.innerHTML = "";
+        comments.forEach(c => {
+            const p = document.createElement("p");
+            p.textContent = c;
+            commentsDiv.appendChild(p);
+        });
+    }
+
+    async function addComment(photo_id) {
+        const input = document.getElementById(`commentInput-${photo_id}`);
+        const comment = input.value;
+        if (!comment) return;
+        await fetch("http://127.0.0.1:5000/add_comment", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({photo_id, comment})
+        });
+        input.value = "";
+        loadComments(photo_id);
+    }
+
+    async function likePhoto(photo_id) {
+        const res = await fetch(`http://127.0.0.1:5000/like_photo/${photo_id}`, {method: "POST"});
+        const data = await res.json();
+        document.getElementById(`likes-${photo_id}`).textContent = data.likes;
+    }
+
+    loadPhotos();
+    </script>
+</body>
+</html>

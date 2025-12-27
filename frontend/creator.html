@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Photo Upload - Creator</title>
+</head>
+<body>
+    <h1>Upload Photo</h1>
+    <form id="uploadForm">
+        <label>Title: <input type="text" name="title" required></label><br><br>
+        <label>Caption: <input type="text" name="caption" required></label><br><br>
+        <label>Photo: <input type="file" name="file" accept="image/*" required></label><br><br>
+        <button type="submit">Upload</button>
+    </form>
+
+    <p id="status"></p>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const res = await fetch('http://127.0.0.1:5000/upload_photo', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            document.getElementById('status').innerText = data.message || JSON.stringify(data);
+            form.reset();
+        });
+    </script>
+</body>
+</html>
