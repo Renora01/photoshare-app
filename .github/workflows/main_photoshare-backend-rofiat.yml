@@ -1,5 +1,3 @@
-# Workflow to build and deploy Python app to Azure Web App
-
 name: Build and deploy Python app to Azure Web App - photoshare-backend-Rofiat
 
 on:
@@ -9,8 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,35 +21,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Archive application for deployment
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            .
-            !venv/
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}  # <-- your Service Principal JSON goes here
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'photoshare-backend-Rofiat'
           slot-name: 'Production'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
