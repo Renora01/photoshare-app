@@ -1,4 +1,5 @@
-name: Deploy PhotoShare App to Azure
+# Build and deploy Python app to Azure Web App using OIDC
+name: Build and Deploy PhotoShare Backend
 
 on:
   push:
@@ -6,63 +7,41 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  id-token: write       # Needed for OIDC auth with Azure
+  contents: read        # Needed for checkout
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout repo
-    - uses: actions/checkout@v4
+      # 1️⃣ Checkout code
+      - uses: actions/checkout@v4
 
-    # 2. Set up Python
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.14'
+      # 2️⃣ Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
 
-    # 3. Install backend dependencies
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r backend/requirements.txt
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    # 4. Prepare artifact (copy backend + frontend)
-    - name: Prepare deployment artifact
-      run: |
-        mkdir deploy
-        cp -r backend/* deploy/
-        cp -r frontend/* deploy/
+      # 4️⃣ Login to Azure using OIDC
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          auth-type: oidc
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
-    # 5. Upload artifact for deployment
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-app
-        path: deploy/
-
-    # 6. Download artifact in deploy job
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: python-app
-
-    # 7. Login to Azure
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C66989BE3CDC4090A48B0316DBFDF3D9 }}
-        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7D679F450A704C3089ADC73FF4111C9C }}
-        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6047419DF9A54BF0A8EF82DF575205EB }}
-
-    # 8. Deploy to Azure Web App
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: 'photoshare-backend-Rofiat'
-        slot-name: 'Production'
-        package: deploy/
-
-    # 9. Set startup command for Gunicorn
-    - name: Configure startup command
-      run: |
-        az webapp config set --name photoshare-backend-Rofiat --resource-group photoshare-rg --startup-file "gunicorn --bind 0.0.0.0 --timeout 600 app:app"
+      # 5️⃣ Deploy to Azure Web App
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'photoshare-backend-Rofiat'  # Your Azure App Service name
+          slot-name: 'Production'
+          package: '.'
