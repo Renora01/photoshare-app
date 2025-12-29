@@ -3,7 +3,7 @@ name: Build and deploy Python app to Azure Web App - photoshare-backend-Rofiat
 on:
   push:
     branches:
-      - main
+      - app
   workflow_dispatch:
 
 jobs:
@@ -31,6 +31,7 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: backend
+
 
 
 
