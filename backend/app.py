@@ -26,13 +26,19 @@ def init_db():
 
 init_db()
 
+# -----------------------------
+# FIXED UPLOAD ROUTE
+# -----------------------------
 @app.route("/upload_photo", methods=["POST"])
 def upload_photo():
-    if 'file' not in request.files:
+    # FIX: Expect "photo" instead of "file"
+    if 'photo' not in request.files:
         return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
+
+    file = request.files['photo']
     title = request.form.get("title", "")
     caption = request.form.get("caption", "")
+
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
@@ -49,6 +55,7 @@ def upload_photo():
 
     return jsonify({"message": "Photo uploaded", "photo_id": photo_id})
 
+
 @app.route("/list_photos", methods=["GET"])
 def list_photos():
     conn = sqlite3.connect(DB_FILE)
@@ -58,6 +65,7 @@ def list_photos():
     conn.close()
     photos = [{"id": r[0], "title": r[1], "caption": r[2], "url": f"/uploads/{r[3]}", "likes": r[4]} for r in rows]
     return jsonify(photos)
+
 
 @app.route("/search")
 def search_photos():
@@ -71,9 +79,11 @@ def search_photos():
     results = [{"id": r[0], "title": r[1], "caption": r[2], "url": f"/uploads/{r[3]}", "likes": r[4]} for r in rows]
     return jsonify(results)
 
+
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
+
 
 # Add a comment
 @app.route("/add_comment", methods=["POST"])
@@ -88,6 +98,7 @@ def add_comment():
     conn.close()
     return jsonify({"status": "comment added"})
 
+
 # Get comments for a photo
 @app.route("/get_comments/<photo_id>")
 def get_comments(photo_id):
@@ -97,6 +108,7 @@ def get_comments(photo_id):
     rows = c.fetchall()
     conn.close()
     return jsonify([r[0] for r in rows])
+
 
 # Like a photo
 @app.route("/like_photo/<photo_id>", methods=["POST"])
@@ -109,6 +121,7 @@ def like_photo(photo_id):
     likes = c.fetchone()[0]
     conn.close()
     return jsonify({"likes": likes})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
