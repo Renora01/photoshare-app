@@ -18,7 +18,9 @@
     <div id="gallery"></div>
 
     <script>
-    async function loadPhotos(url = "http://127.0.0.1:5000/list_photos") {
+    const BASE_URL = "https://photoshareapp-rofiat.azurewebsites.net";
+
+    async function loadPhotos(url = `${BASE_URL}/list_photos`) {
         const res = await fetch(url);
         const photos = await res.json();
         const gallery = document.getElementById("gallery");
@@ -29,7 +31,7 @@
             div.innerHTML = `
                 <h3>${p.title}</h3>
                 <p>${p.caption}</p>
-                <img src="http://127.0.0.1:5000${p.url}" width="300">
+                <img src="${BASE_URL}${p.url}" width="300">
                 <p>Likes: <span id="likes-${p.id}">${p.likes || 0}</span></p>
                 <button onclick="likePhoto('${p.id}')">Like ❤️</button>
                 <h4>Comments:</h4>
@@ -45,11 +47,11 @@
 
     function search() {
         const q = document.getElementById("searchBox").value;
-        loadPhotos(`http://127.0.0.1:5000/search?q=${encodeURIComponent(q)}`);
+        loadPhotos(`${BASE_URL}/search?q=${encodeURIComponent(q)}`);
     }
 
     async function loadComments(photo_id) {
-        const res = await fetch(`http://127.0.0.1:5000/get_comments/${photo_id}`, {cache: "no-store"});
+        const res = await fetch(`${BASE_URL}/get_comments/${photo_id}`, {cache: "no-store"});
         const comments = await res.json();
         const commentsDiv = document.getElementById(`comments-${photo_id}`);
         commentsDiv.innerHTML = "";
@@ -64,17 +66,19 @@
         const input = document.getElementById(`commentInput-${photo_id}`);
         const comment = input.value;
         if (!comment) return;
-        await fetch("http://127.0.0.1:5000/add_comment", {
+
+        await fetch(`${BASE_URL}/add_comment`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({photo_id, comment})
         });
+
         input.value = "";
         loadComments(photo_id);
     }
 
     async function likePhoto(photo_id) {
-        const res = await fetch(`http://127.0.0.1:5000/like_photo/${photo_id}`, {method: "POST"});
+        const res = await fetch(`${BASE_URL}/like_photo/${photo_id}`, {method: "POST"});
         const data = await res.json();
         document.getElementById(`likes-${photo_id}`).textContent = data.likes;
     }
