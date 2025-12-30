@@ -19,10 +19,12 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
-            const res = await fetch('http://127.0.0.1:5000/upload_photo', {
+
+            const res = await fetch('https://photoshareapp-rofiat.azurewebsites.net/upload_photo', {
                 method: 'POST',
                 body: formData
             });
+
             const data = await res.json();
             document.getElementById('status').innerText = data.message || JSON.stringify(data);
             form.reset();
