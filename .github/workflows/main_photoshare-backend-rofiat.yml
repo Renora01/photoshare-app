@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -38,3 +38,4 @@ jobs:
 
 
           
+
