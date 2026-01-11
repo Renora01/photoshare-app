@@ -27,12 +27,14 @@ def init_db():
 init_db()
 
 # -----------------------------
-# FIXED UPLOAD ROUTE
+# UPLOAD ROUTE WITH LOGGING
 # -----------------------------
 @app.route("/upload_photo", methods=["POST"])
 def upload_photo():
-    # FIX: Expect "photo" instead of "file"
+    print("📥 Received UPLOAD request")
+
     if 'photo' not in request.files:
+        print("❌ No file part in request")
         return jsonify({"error": "No file part"}), 400
 
     file = request.files['photo']
@@ -40,10 +42,14 @@ def upload_photo():
     caption = request.form.get("caption", "")
 
     if file.filename == '':
+        print("❌ No selected file")
         return jsonify({"error": "No selected file"}), 400
 
     photo_id = str(uuid.uuid4())
     filename = photo_id + "_" + file.filename
+
+    print(f"💾 Saving file: {filename}")
+
     file.save(os.path.join(UPLOAD_FOLDER, filename))
 
     conn = sqlite3.connect(DB_FILE)
@@ -53,23 +59,28 @@ def upload_photo():
     conn.commit()
     conn.close()
 
+    print(f"✅ Upload complete. Photo ID: {photo_id}")
+
     return jsonify({"message": "Photo uploaded", "photo_id": photo_id})
 
 
 @app.route("/list_photos", methods=["GET"])
 def list_photos():
+    print("📄 Listing all photos")
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("SELECT id, title, caption, filename, likes FROM photos")
     rows = c.fetchall()
     conn.close()
     photos = [{"id": r[0], "title": r[1], "caption": r[2], "url": f"/uploads/{r[3]}", "likes": r[4]} for r in rows]
+    print(f"📸 Total photos returned: {len(photos)}")
     return jsonify(photos)
 
 
 @app.route("/search")
 def search_photos():
     query = request.args.get("q", "")
+    print(f"🔍 Search request received. Query: {query}")
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("SELECT id, title, caption, filename, likes FROM photos WHERE title LIKE ? OR caption LIKE ?",
@@ -77,20 +88,22 @@ def search_photos():
     rows = c.fetchall()
     conn.close()
     results = [{"id": r[0], "title": r[1], "caption": r[2], "url": f"/uploads/{r[3]}", "likes": r[4]} for r in rows]
+    print(f"🔎 Search results: {len(results)} items")
     return jsonify(results)
 
 
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
+    print(f"📂 Serving file: {filename}")
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-# Add a comment
 @app.route("/add_comment", methods=["POST"])
 def add_comment():
     data = request.json
     photo_id = data.get("photo_id")
     comment = data.get("comment")
+    print(f"💬 Adding comment to photo {photo_id}: {comment}")
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("INSERT INTO comments (photo_id, comment) VALUES (?, ?)", (photo_id, comment))
@@ -99,20 +112,21 @@ def add_comment():
     return jsonify({"status": "comment added"})
 
 
-# Get comments for a photo
 @app.route("/get_comments/<photo_id>")
 def get_comments(photo_id):
+    print(f"🗂 Fetching comments for photo {photo_id}")
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("SELECT comment FROM comments WHERE photo_id = ?", (photo_id,))
     rows = c.fetchall()
     conn.close()
+    print(f"💬 Total comments returned: {len(rows)}")
     return jsonify([r[0] for r in rows])
 
 
-# Like a photo
 @app.route("/like_photo/<photo_id>", methods=["POST"])
 def like_photo(photo_id):
+    print(f"👍 Like request for photo {photo_id}")
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("UPDATE photos SET likes = likes + 1 WHERE id = ?", (photo_id,))
@@ -120,6 +134,7 @@ def like_photo(photo_id):
     c.execute("SELECT likes FROM photos WHERE id = ?", (photo_id,))
     likes = c.fetchone()[0]
     conn.close()
+    print(f"❤️ Updated likes for {photo_id}: {likes}")
     return jsonify({"likes": likes})
 
 
